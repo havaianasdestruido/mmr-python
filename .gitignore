@@ -2,3 +2,6 @@ __pycache__/
 .venv/
 python32/
 *.pyc
+results.xml
+results.json
+results.tap

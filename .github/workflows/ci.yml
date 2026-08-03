@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up 32-bit CPython 3.11 (embeddable)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-win32.zip -OutFile py32.zip
+          Expand-Archive py32.zip -DestinationPath python32
+
+      - name: Byte-compile all sources
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
+            & python32\python.exe -m py_compile $_.FullName
+          }
+
+      - name: List registered tests
+        shell: pwsh
+        run: |
+          & python32\python.exe run_tests.py --list
+
+      - name: Run full suite (requires WMMR_DLL_DIR secret)
+        shell: pwsh
+        env:
+          WMMR_DLL_DIR: ${{ secrets.WMMR_DLL_DIR }}
+        run: |
+          if ($env:WMMR_DLL_DIR -and (Test-Path -LiteralPath $env:WMMR_DLL_DIR)) {
+            & python32\python.exe run_tests.py `
+              --junit results.xml `
+              --json results.json `
+              --tap results.tap
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            Write-Host "WMMR_DLL_DIR secret not set; skipping DLL-backed run (compile + list only)."
+          }
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            results.xml
+            results.json
+            results.tap
+          if-no-files-found: ignore
