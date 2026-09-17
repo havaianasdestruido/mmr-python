@@ -110,7 +110,8 @@ def wf_moviemaker_cli_matrix(ctx):
 
 
 def wf_video_factory_chain(ctx):
-    """WLXVideoTrim factories + WLXPipetran + WLXPipeline all stub E_NOTIMPL."""
+    """WLXVideoTrim factories real (S_OK / AVS_E_UNSUPPORTED for unknown
+    media type); WLXPipetran + WLXPipeline factory tables real/counted."""
     vt = wlxvideotrim.bind(ctx)
     pt = wlxpipetran.bind(ctx)
     pl = wlxpipeline.bind(ctx)
@@ -119,13 +120,13 @@ def wf_video_factory_chain(ctx):
     for name in ("CreateAVICopierDirect", "CreateVideoPlayer",
                  "CreateVideoWMVTranscoder", "CreateVideoFormatContextTranscoder"):
         obj = ctypes.c_void_p()
-        checks.append((vt[name](ctypes.byref(obj)) & 0xFFFFFFFF) == E_NOTIMPL)
+        checks.append((vt[name](ctypes.byref(obj)) & 0xFFFFFFFF) == S_OK)
     clsid = GUID()
     obj = ctypes.c_void_p()
     checks.append(
         (vt["CreateVideoCopierFromMediaType"](ctypes.byref(clsid),
                                               ctypes.byref(obj)) & 0xFFFFFFFF)
-        == E_NOTIMPL)
+        == wlxvideotrim.AVS_E_UNSUPPORTED_FILE_TYPE)
 
     funcs = ctypes.c_void_p()
     count = ctypes.c_uint32()
@@ -136,13 +137,14 @@ def wf_video_factory_chain(ctx):
 
     funcs = ctypes.c_void_p()
     count = ctypes.c_uint32()
-    checks.append(
-        (pl["GetPipelineCreateFunctions"](ctypes.byref(funcs),
-                                          ctypes.byref(count)) & 0xFFFFFFFF)
-        == E_NOTIMPL)
+    hr_pl = (pl["GetPipelineCreateFunctions"](ctypes.byref(funcs),
+                                              ctypes.byref(count)) & 0xFFFFFFFF)
+    checks.append(hr_pl == S_OK and count.value == 6)
 
     ctx.record(GROUP, "workflow.video.factory_chain",
-               all(checks), "7/7 factory stubs -> E_NOTIMPL")
+               all(checks),
+               "vt=4xS_OK copier=0x%08X pipetran=E_NOTIMPL pipeline=S_OK+%u"
+               % (wlxvideotrim.AVS_E_UNSUPPORTED_FILE_TYPE, count.value))
 
 
 def wf_publish_target_lifecycle(ctx):
@@ -184,7 +186,8 @@ def wf_publish_target_lifecycle(ctx):
 
 
 def wf_mp4_filter_surface(ctx):
-    """MP4 filter-graph surface: stubs return E_NOTIMPL, playability FALSE."""
+    """MP4 filter-graph surface: real impl fails on nonexistent input,
+    add-source validates the NULL graph, playability FALSE."""
     mp4 = wlxmp4parser.bind(ctx)
 
     pgraph = ctypes.c_void_p()
@@ -197,8 +200,8 @@ def wf_mp4_filter_surface(ctx):
 
     ctx.record(
         GROUP, "workflow.mp4.filter_surface",
-        (hr_graph & 0xFFFFFFFF) == E_NOTIMPL
-        and (hr_add & 0xFFFFFFFF) == E_NOTIMPL
+        (hr_graph & 0x80000000) != 0
+        and (hr_add & 0xFFFFFFFF) == 0x80070057     # E_INVALIDARG (null graph)
         and playable == 0,
         "graph=0x%08X add=0x%08X playable=%d"
         % (hr_graph & 0xFFFFFFFF, hr_add & 0xFFFFFFFF, int(playable)))

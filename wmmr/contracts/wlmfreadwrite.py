@@ -11,8 +11,8 @@ files) so no real media I/O is required:
 * MFWriter_WriteFrame(NULL)   -> E_INVALIDARG
 * MFWriter_Finalize(NULL)     -> E_INVALIDARG
 
-DllCanUnloadNow returns S_OK here (the rebuilt binary diverges from the
-source stub, which returned S_FALSE).
+DllCanUnloadNow returns S_OK (no outstanding COM objects; the source-level
+S_FALSE stub value was removed to match the reference binary).
 """
 
 import ctypes

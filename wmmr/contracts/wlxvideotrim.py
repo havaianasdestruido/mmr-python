@@ -1,13 +1,18 @@
-"""WLXVideoTrim.dll -- DirectShow filter factories (5 exports, all stubs).
+"""WLXVideoTrim.dll -- DirectShow filter factories (5 exports, real).
 
-All five Create* factories share the stub E_NOTIMPL pattern (4 of 5 export
-entries alias the same RVA); the existing suite already pins this behavior.
+The five Create* factories construct real engines.  Four return S_OK and
+hand back a valid IUnknown; CreateVideoCopierFromMediaType returns
+AVS_E_UNSUPPORTED_FILE_TYPE (0x80520005) for an unrecognized major type
+(GUID_NULL).  The existing suite pins this behavior.
 """
 
 import ctypes
 
 from wmmr.bindings import (
-    E_NOTIMPL, HRESULT, GUID, bind_stdcall, load_dll)
+    S_OK, E_NOTIMPL, HRESULT, GUID, bind_stdcall, load_dll)
+
+# AVS_E_UNSUPPORTED_FILE_TYPE — facility 0x52, code 0x05
+AVS_E_UNSUPPORTED_FILE_TYPE = 0x80520005
 
 GROUP = "wlxvideotrim"
 DLL = "WLXVideoTrim.dll"
@@ -54,9 +59,13 @@ def test_api(ctx):
             clsid = GUID()
             args = (ctypes.byref(clsid), ctypes.byref(obj))
         hr = fn(*args)
+        # The zeroed GUID passed for CreateVideoCopierFromMediaType does not
+        # match any MEDIATYPE_*, so the factory returns AVS_E_UNSUPPORTED_FILE_TYPE.
+        expected = (AVS_E_UNSUPPORTED_FILE_TYPE if name == "CreateVideoCopierFromMediaType"
+                    else S_OK)
         ctx.record(GROUP, "WLXVideoTrim.%s" % name,
-                   (hr & 0xFFFFFFFF) == E_NOTIMPL,
-                   "HRESULT=0x%08X" % (hr & 0xFFFFFFFF))
+                   (hr & 0xFFFFFFFF) == (expected & 0xFFFFFFFF),
+                   "HRESULT=0x%08X want=0x%08X" % (hr & 0xFFFFFFFF, expected & 0xFFFFFFFF))
 
 
 TESTS = [test_api]

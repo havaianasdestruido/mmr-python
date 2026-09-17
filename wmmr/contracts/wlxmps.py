@@ -11,7 +11,7 @@ import ctypes
 import ctypes.wintypes as wt
 
 from wmmr.bindings import (
-    S_OK, CLASS_E_CLASSNOTAVAILABLE, E_NOTIMPL, HRESULT, GUID,
+    S_OK, CLASS_E_CLASSNOTAVAILABLE, E_NOTIMPL, E_INVALIDARG, HRESULT, GUID,
     bind_stdcall, load_dll)
 
 GROUP = "wlxmps"
@@ -118,7 +118,7 @@ def test_api(ctx):
     percent = ctypes.c_uint()
     hr = api["GetStatus"](None, ctypes.byref(status), ctypes.byref(percent))
     ctx.record(GROUP, "WLXMPS.GetStatus",
-               (hr & 0xFFFFFFFF) == E_NOTIMPL,
+               (hr & 0xFFFFFFFF) == E_INVALIDARG,
                "HRESULT=0x%08X" % (hr & 0xFFFFFFFF))
 
     api["Destroy"](mgr)

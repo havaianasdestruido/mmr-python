@@ -30,8 +30,10 @@ COM_QUARTET = [
 
 # MovieMakerPreviewClient exports a real DllRegisterServer (registry writes),
 # not an alias stub -- it returns S_OK or a registry error, and self-cleans
-# through DllUnregisterServer on failure.
-REAL_REGISTRATION = {"MovieMakerPreviewClient"}
+# through DllUnregisterServer on failure.  WLXPhotoCinematic also performs
+# real HKLM registry writes, so its DllRegisterServer returns E_ACCESSDENIED
+# in a non-elevated process (matching the reference binary's behavior).
+REAL_REGISTRATION = {"MovieMakerPreviewClient", "WLXPhotoCinematic"}
 
 
 def _bind_com(dll):

@@ -1,9 +1,11 @@
-"""WLXMP4Parser.dll -- MP4/ISOBMFF parser (8 exports, 4 clean C + COM).
+"""WLXMP4Parser.dll -- MP4/ISOBMFF parser (8 exports, 4 real C + COM).
 
-The exported filter/factory functions are stubs:
+The exported filter/factory functions are real implementations that return
+appropriate HRESULTs for nonexistent inputs:
 
-* _AddMP4SourceFilter@12   -> E_NOTIMPL
-* _BuildMP4FilterGraph@8   -> E_NOTIMPL  (BuildMP4PlayBack aliases it)
+* _AddMP4SourceFilter@12   -> E_INVALIDARG (pGraph == NULL)
+* _BuildMP4FilterGraph@8   -> FAILED(hr)  (file path not found)
+* _BuildMP4PlayBack@8      -> FAILED(hr)  (RenderFile fails on nonexistent file)
 * _IsMP4FilePlayable@4     -> FALSE
 * COM quartet: DllCanUnloadNow S_OK, DllGetClassObject
   CLASS_E_CLASSNOTAVAILABLE, Register/Unregister S_OK.
@@ -13,7 +15,7 @@ import ctypes
 import ctypes.wintypes as wt
 
 from wmmr.bindings import (
-    S_OK, CLASS_E_CLASSNOTAVAILABLE, E_NOTIMPL, HRESULT, GUID,
+    S_OK, CLASS_E_CLASSNOTAVAILABLE, E_INVALIDARG, HRESULT, GUID,
     bind_stdcall, load_dll)
 
 GROUP = "wlxmp4parser"
@@ -51,19 +53,19 @@ def test_api(ctx):
     hr = api["BuildMP4FilterGraph"](u"C:\\nonexistent\\movie.mp4",
                                     ctypes.byref(pgraph))
     ctx.record(GROUP, "WLXMP4Parser.BuildMP4FilterGraph",
-               (hr & 0xFFFFFFFF) == E_NOTIMPL,
+               (hr & 0x80000000) != 0,
                "HRESULT=0x%08X" % (hr & 0xFFFFFFFF))
 
     hr = api["BuildMP4PlayBack"](u"C:\\nonexistent\\movie.mp4", None)
     ctx.record(GROUP, "WLXMP4Parser.BuildMP4PlayBack",
-               (hr & 0xFFFFFFFF) == E_NOTIMPL,
+               (hr & 0x80000000) != 0,
                "HRESULT=0x%08X" % (hr & 0xFFFFFFFF))
 
     pfilter = ctypes.c_void_p()
     hr = api["AddMP4SourceFilter"](u"C:\\nonexistent\\movie.mp4", None,
                                    ctypes.byref(pfilter))
     ctx.record(GROUP, "WLXMP4Parser.AddMP4SourceFilter",
-               (hr & 0xFFFFFFFF) == E_NOTIMPL,
+               (hr & 0xFFFFFFFF) == E_INVALIDARG,
                "HRESULT=0x%08X" % (hr & 0xFFFFFFFF))
 
     ok = api["IsMP4FilePlayable"](u"C:\\nonexistent\\movie.mp4")
