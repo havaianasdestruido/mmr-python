@@ -1,5 +1,16 @@
 # WMMR Python ctypes test framework
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=havaianasdestruido%2Fmmr-python&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=havaianasdestruido/mmr-python&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=havaianasdestruido/mmr-python&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=havaianasdestruido/mmr-python&type=date&legend=top-left" />
+ </picture>
+</a>
+
+
 Exercises the real 32-bit WMMR core DLLs (Windows Live Movie Maker 2012)
 from the Debug build directory using `ctypes`.
 
